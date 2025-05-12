@@ -1,0 +1,6 @@
+---
+output: github_document
+---
+
+This repository contains all analysis code for the paper "The winner's curse under dependence: repairing empirical Bayes using convoluted densities" by Stijn Hawinkel, Olivier Thas and Steven Maere. All data used are available online and are downloaded by the code in the notebook.
+
