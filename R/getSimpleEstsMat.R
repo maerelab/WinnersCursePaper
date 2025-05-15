@@ -17,6 +17,7 @@ getSimpleEstsMat = function(mat, bootReps, bootRepsParam = bootReps, meanVec, Va
     bootCorrectTan = TanCorrect(rawEsts, bootEstsIn, ciReturn = ciReturnBoot, fullBootObj = bootEsts, quants = quants)
     bootCorrectForde = try(forde(rawEsts, Vars <- apply(mat, 2, var)/n))
     ses = sqrt(Vars)
+    bootCorrectFordeDep = try(forde(rawEsts, varsEstimates = Vars, beta_boot = bootEstsIn[1,]))
     # Parametric bootstrap
     if(parametric){
         bootEstsParam = bootParam(mat, bootReps, rawEsts, ciReturnBoot, method = method)
@@ -64,7 +65,7 @@ getSimpleEstsMat = function(mat, bootReps, bootRepsParam = bootReps, meanVec, Va
                    "VanZwet2021conv" = zwetResConv$res$betaHats + mr,
                    "tweedieConvEsts" = tweedieCorrectConvList["tweedieCorEsts",],
                    "TanCorrectEstParam" = bootParamCorrectTan$est,
-                   "bootCorrectForde" = bootCorrectForde,
+                   "bootCorrectForde" = bootCorrectForde, "bootCorrectFordeDep" = bootCorrectFordeDep,
                    "tweedieEstOracleVar" = tweedieCorrectBootOracleVar,
                    'tweedieEstOracleDens' = tweedieCorrectBootOracleDens,
                    'tweedieEstOracleDensVar' = tweedieCorrectBootOracleVarDens,

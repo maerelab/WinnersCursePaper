@@ -25,7 +25,7 @@ estDens = function(densMethod, ...){
            "Lindsey" = LindseysMethod(...),
            "nlpden" = nlpdenWrapper(...),
            "kernel" = kernelEst(...),
-           stop("Density estimation only implemented for 'Lindsey' and 'nlpden'"))
+           stop("Density estimation only implemented for 'Lindsey', 'nlpden' and 'kernel'"))
 }
 kernelEst = function(x, ...){
     deriv2kde = predict(kdde(estimates, deriv.order = 2),x = estimates)

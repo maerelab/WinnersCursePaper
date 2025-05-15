@@ -34,7 +34,7 @@ plotSimpleRes = function(resList, extremes, p,
             Sd = as.character(Sd)
             topMats = lapply(resList[[mode]][[Sd]], function(x) {
                 apply(x$resMatZ[,grep(pattern = "rescale", value = TRUE, invert = TRUE,
-                                      Methods2Plot[!(Methods2Plot %in% c("condML","condML_rescale", "split", "VanZwet2021", "VanZwet2021conv"))])],
+                                      Methods2Plot[!(Methods2Plot %in% c("condML","condML_rescale", "split", "VanZwet2021", "VanZwet2021conv", "bootCorrectFordeDep"))])],
                       2, getTopRank, power = power,
                       maxExt = max(extremes), true = x$resMat[, "meanVec"]/sqrt(x$resMat[, "VarsTrue"]), simplify = FALSE)
             })
@@ -68,7 +68,8 @@ plotSimpleRes = function(resList, extremes, p,
     moltErrorListFull$Group = paste(with(moltErrorListFull, paste(as.integer(Method), Cor)))
     moltErrorListFull$Top_features = as.integer(moltErrorListFull$Top_features)
     #The means
-    meansDf = aggregate(Estimation_error ~ Method + extreme + Top_features+ Cor +what + mode, FUN = mean, data =  moltErrorListFull)
+    meansDf = aggregate(Estimation_error ~ Method + extreme + Top_features + Cor + what + mode,
+                        FUN = mean, data =  moltErrorListFull)
     meansDf$Group = factor(paste(with(meansDf, paste(Method, Cor))), ordered = TRUE)
     if(boxPlot){
         ggplot(data = moltErrorListFull,
@@ -89,7 +90,7 @@ plotSimpleRes = function(resList, extremes, p,
         geom_line(linewidth = lineSize) + facet_grid(what ~ Cor, scales = "free_y") +
         ylab(switch(power, "1" = "Bias", "2" = "MSE")) +
         xlab("Number of extreme estimates") +
-        scale_colour_manual(values = colourVec[names(colourVec) %in% levels(moltErrorListFull$Method)]) +
+        scale_colour_manual(values = colourVec[names(colourVec) %in% labels(moltErrorListFull$Method)]) +
         if(power==1) geom_hline(yintercept = 0, linetype = "dotted")
         }
     }

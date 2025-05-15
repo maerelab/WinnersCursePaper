@@ -34,7 +34,8 @@ errorMatList = lapply(modes, function(mode){
         lapply(Sds, function(Sd){
         Sd = as.character(Sd)
         tdpMats = lapply(resList[[mode]][[Sd]], function(x) {
-            apply(x$resMatZ[,grep(pattern = "rescale", value = TRUE, invert = TRUE, Methods2Plot[!(Methods2Plot %in% c("condML", "split", "Zstatistic", "ash", "ashBoot", "ashBootParam", "VanZwet2021", "VanZwet2021conv"))])], 2, getInTdp,
+            apply(x$resMatZ[,grep(pattern = "rescale", value = TRUE, invert = TRUE,
+                                  Methods2Plot[!(Methods2Plot %in% c("condML", "split", "Zstatistic", "ash", "ashBoot", "ashBootParam", "VanZwet2021", "VanZwet2021conv", "bootCorrectFordeDep"))])], 2, getInTdp,
                   maxExt = max(extremes), true = sort(x$resMat[, "meanVec"]), simplify = FALSE)
         })
         lapply(extremes, function(ext){
@@ -101,7 +102,7 @@ plotRunningTDPfdr = function(resList, extremes, p, methodLevels = methodLevels,
         }))
     }
     errorMatList = lapply(modes, function(mode){
-        lapply(Sds, function(Sd){
+        mclapply(Sds, mc.cores = nCores, function(Sd){
             Sd = as.character(Sd)
             tdpMats = lapply(resList[[mode]][[Sd]], function(x) {
                 extremes = getExtremes(x)

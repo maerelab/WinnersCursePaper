@@ -5,7 +5,7 @@ plotSimpleResFDR = function(resList, p,
                          extPlot = "small", returnDf = FALSE, methodLevels = methodLevels,
                          methodLabels = methodLabels, notMethodsPlot = c("condML","condML_rescale", "split", "catScores")){
     errorMatList = lapply(modes, function(mode){
-        mclapply(mc.cores = nCores, Sds, function(Sd){
+        lapply(Sds, function(Sd){
             Sd = as.character(Sd)
             topMats = lapply(resList[[mode]][[Sd]], function(x) {
                 extremes = getExtremes(x)

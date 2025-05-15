@@ -17,7 +17,7 @@ knitr::opts_chunk$set(cache = TRUE, autodep = TRUE, warning = FALSE, cache.lazy 
                       fig.width = 7, fig.height = 4, purl = TRUE, 
                       fig.show = "hold", fig.pos = "p")
 libs = c("ggplot2", "parallel", "reshape2", "nlme", "glmnet", "grid", "mvtnorm", 
-         "xtable", "pengls", "numDeriv", "BiocParallel", "ks", "ashr", "nlpden",
+         "xtable", "pengls", "numDeriv", "BiocParallel", "ks", "ashr",
          "st", "forcats", "winnerscurse", "KScorrect", "flexmix", "openxlsx")
 for (i in libs){
   library(i, character.only = TRUE, quietly = TRUE)
@@ -30,21 +30,19 @@ nCores = 3
 lmeCon = lmeControl(opt = "optim", maxIter = 5e2, msVerbose = FALSE,
                    msMaxIter = 5e2, niterEM = 1e3, msMaxEval=1e3)
 colourVec = c("rawEst" = "black", "split" = "#000099", "estOutSplit" = "grey25", "condML" = "#990099", 
-              "FayeCorrectEst" = "#FF6600", "TanCorrectEst" = "#FFCC00", "TanCorrectEstParam" = "#CCCC99", "bootCorrectForde" = "#FF0099", "tweedieEst" = "#CCCC99", "tweedieEstsTrunc" = "#CCCC99",
+              "FayeCorrectEst" = "#FF6600", "TanCorrectEst" = "#FFCC00", "TanCorrectEstParam" = "#CCCC99", "bootCorrectForde" = "#FF0099", "bootCorrectFordeDep" = "antiquewhite4", "tweedieEst" = "#CCCC99", "tweedieEstsTrunc" = "#CCCC99",
               "tweedieConvEsts" = "#99CC00", "tweedieConvEstsTrunc" = "#99CC00","tweedieConvEstsBoot" = "#339900", "tweedieConvEstsTruncBoot" = "#660066", "ash" = "#990000", "ashConv" = "#FF0033", "VanZwet2021" = "#006666", "VanZwet2021conv" = "#00FFFF", "rawsCatBoot" = "#0099FF", "rawsCatBootParam" = "#009999", "decorrelated" = "#0099FF", "catScores" = "#0099FF", "Zstatistic" = "#666666")
 methodLevels = names(colourVec)
 methodLabels = c("Raw", "Separate estimation", "Separate estimation", "Conditional likelihood", 
-                 "BR-squared", "Tan2015 (nonparametric)", "Tan2015 (parametric)", "winnerscurse", "Tweedie's formula", "Tweedie's formula\ntruncated", "Tweedie's formula\nconvoluted or bagged", "Tweedie's formula\nconvoluted or bagged\n(truncated)", 
+                 "BR-squared", "Tan2015 (nonparametric)", "Tan2015 (parametric)", "winnerscurse", "winnerscurse\n(nonparametric)", "Tweedie's formula", "Tweedie's formula\ntruncated", "Tweedie's formula\nconvoluted or bagged", "Tweedie's formula\nconvoluted or bagged\n(truncated)", 
                  "Tweedie's formula\nconvoluted or bagged(bootstrap SE)", "Tweedie's formula\nconvoluted or bagged\n(truncated, bootstrap SE)",  "Ash", "Ash convoluted", "VanZwet2021", "VanZwet2021 convoluted", "Cat scores\nnonparametric bootstrap", "Cat scores\nparametric bootstrap", "Decorrelated\nestimates", "Cat scores", "Z-statistic")
 names(colourVec) = methodLabels
 colourVec = c(colourVec, "Tweedie's formula\nconvoluted" = "#99CC00")
-foo = lapply(c("Results", "simResults"), dir.create, showWarnings = FALSE) #Create paths to store results
+foo = lapply(c("Data", "Results", "simResults"), dir.create, showWarnings = FALSE) #Create paths to store results
 options(tinytex.clean = FALSE) #Keep aux file for cross-referencing
 ```
 
 \tableofcontents
-
-The R-code for producing all output of this study is available from _Biostatistics_ online.
 
 ```{r simSetup}
 n = 50 #Sample size
@@ -72,7 +70,7 @@ betaList = list("p" = betas1e3)
 Sds = c(0, 0.25, 0.5, 0.75); names(Sds) = Sds
 ```
 
-# Convolution for improved density estimation under dependence
+# Convolution improves density estimation under dependence
 
 ## The derivative of the logarithm of a mixture of normals \label{sec:logDeriv} 
 
@@ -90,7 +88,7 @@ The first and second derivative of the log density of an even mixture of $p$ nor
 
 ## Scenarios in which convolution renders Tweedie's formula unbiased \label{sec:unbiased}
 
-Although convolution yields an estimator $\tilde{f}$ with correct expected variance, unbiasedness of the estimation of the derivative of its log-density and hence of Tweedie's formula cannot be guaranteed in general. In computer simulations we see a great improvement in the bias though, suggesting that convolution is a simple and good working solution that drastically reduces bias in Tweedie's formula under many scenarios. Here we prove unbiasedness of our procedure in a few simple cases. We assume that M=1, so the covariance structure is determined by a single confounder that engenders a compound symmetric covariance structure, as is the case in our motivating example of estimating prediction loss for a single outcome using many possible predictors. In that case $\hat{k}$ is a normal distribution $\hat{k}(z) = r(z|\zeta \sqrt{\alpha_1}, 1-\alpha_1)$, with $\zeta$ standard normal. Since we work with z-values, the true $k$ is an even mixture of standard normals and thus itself standard normal: $k(z) = \phi(z)$.
+Although convolution yields an estimator $\tilde{f}$ with correct expected variance, unbiasedness of the estimation of the derivative of its log-density and hence of Tweedie's formula cannot be guaranteed in general. In simulations we see a great improvement in the bias though, suggesting that convolution is a simple and good working solution that drastically reduces bias in Tweedie's formula under many scenarios. Here we prove unbiasedness of our procedure in a few simple cases. We assume that M=1, so the covariance structure is determined by a single confounder that engenders a compound symmetric covariance structure, as is the case in our motivating example of estimating prediction loss for a single outcome using many possible predictors. In that case $\hat{k}$ is a normal distribution $\hat{k}(z) = r(z|\zeta \sqrt{\alpha_1}, 1-\alpha_1)$, with $\zeta$ standard normal. Since we work with z-values, the true $k$ is standard normal: $k(z) = \phi(z)$.
 
 If $g$ is a point mass at $\mu^*$, then $f(z) = r(z|\mu^*, 1)$ (remember that $f = g\ast k$). The convolution estimator \eqref{eq:ftilde} equals $\tilde{f}(z) = r(z|\zeta \sqrt{\alpha_1} +\mu^*, 1)$, the derivative of its log-density equals $\zeta\sqrt{\alpha_1}+\mu^*-z$ with expected value $\mu^*-z$, proving unbiasedness. If $g$ is a normal distribution with mean $\mu^*$ and variance $\sigma^2_g$, then $f(z) = r(z|\mu^*, 1 + \sigma^2_g)$. The convolution estimator equals $\tilde{f}(z) = r(z|\zeta \sqrt{\alpha_1} +\mu^*, 1+ \sigma^2_g)$, the derivative of its log-density $\frac{\zeta\sqrt{\alpha_1}+\mu^*-z}{1+ \sigma^2_g}$ with expected value $\frac{\mu^*-z}{1+ \sigma^2_g}$, again proving unbiasedness.
 
@@ -98,7 +96,7 @@ If $g$ is a point mass at $\mu^*$, then $f(z) = r(z|\mu^*, 1)$ (remember that $f
 
 ## Empirical validation of empirical properties
 
-In the main text, the theoretical results from Sections \ref{sec:tweedieBiased}-\ref{sec:solution} are validated using Monte-Carlo simulations in Section \ref{sec:Tweedieconv}, as described in Section \ref{sec:simparam}. Here we provide exhaustive results, including not only the compound symmetric correlation structure but also block correlation.
+In the main text, the theoretical results from Sections \ref{sec:tweedieBiased}-\ref{sec:solution} are validated using Monte-Carlo simulations in Section \ref{sec:simparam}. Here we provide exhaustive results, including not only the compound symmetric correlation structure but also block correlation.
 
 ### Naive estimator
 
@@ -133,11 +131,18 @@ if(!file.exists(theorFile <- "simResults/theorFile.RData")){
 ```
 
 ```{r logderivGraphs, include = FALSE}
-#Mean
 moltMeans = melt(meanVarianceDerivs, varnames = c("z", "what", "j"), value.name = "value")
 moltMeans$z = zEval[moltMeans$z]
 moltMeans = cbind(moltMeans, Grid[moltMeans$j,])
 moltMeans$what = factor(moltMeans$what, ordered = TRUE, labels = c("Bias", "Variance", "MSE"), levels = c("Bias", "Variance", "MSE"))
+ggplot(data = moltMeans[moltMeans$what=="Bias" & abs(moltMeans$z) < 1,], aes(x = z, y = value, col = factor(p))) +
+    geom_line() + facet_grid(Sd~., scales = "free_y") +
+    scale_colour_grey(name = "Number of features") +
+    geom_hline(yintercept = 0, linetype = "solid", linewidth = 0.3) +
+    geom_abline(aes(slope = -Sd, intercept = 0), linetype = "dashed", linewidth = 0.3) +
+    geom_line(aes(x = z, y = -Sd*z-Sd^2*z*(z^2-1)), linetype = "dotted", linewidth = 0.3, inherit.aes = FALSE) +
+    ylab("Bias")
+ggsave("ManuscriptSelBias/Graphs/LogDerivMeanPrint.pdf", height = hTmp <- 6, width = 8)
 ggplot(data = moltMeans[moltMeans$what=="Bias" & abs(moltMeans$z) < 1,], aes(x = z, y = value, col = factor(p))) +
     geom_line() + facet_grid(Sd~., scales = "free_y") +
     scale_colour_discrete(name = "Number of features") +
@@ -145,7 +150,7 @@ ggplot(data = moltMeans[moltMeans$what=="Bias" & abs(moltMeans$z) < 1,], aes(x =
     geom_abline(aes(slope = -Sd, intercept = 0), linetype = "dashed", linewidth = 0.3) +
     geom_line(aes(x = z, y = -Sd*z-Sd^2*z*(z^2-1)), linetype = "dotted", linewidth = 0.3, inherit.aes = FALSE) +
     ylab("Bias")
-ggsave("ManuscriptSelBias/Graphs/LogDerivMean.pdf", height = 6.5, width = 8) 
+ggsave("ManuscriptSelBias/Graphs/LogDerivMean.pdf", height = hTmp, width = 8) 
 rm(meanVarianceDerivs)
 ```
 
@@ -228,12 +233,16 @@ names(molt2)[4:5] = c("what", "j")
 molt2$z = zEval[molt2$z]
 molt2 = cbind(molt2, Grid[molt2$j,])[molt2$estimator %in% c("naive", "a5", "bagged"),]
 molt2$estimator = factor(molt2$estimator, ordered = TRUE, levels = c("naive", "a5", "a5smoothed", "bagged"), labels = c("Naive", "Convolution", "Convoluted smoothed", "Bagging"))
-ggplot(data = molt2[molt2$what=="bias" & abs(molt2$z) < 4,], aes(x = z, y = value, col = factor(estimator))) +
-    geom_line() + facet_grid(Sd~p, scales = "free_y") +
-    scale_colour_manual(values = colValues, name = "Estimator") +
-    geom_hline(yintercept = 0, linetype = "dotted", linewidth = 0.3) +
+ggplot(data = molt2[molt2$what=="bias" & abs(molt2$z) < 4,], aes(x = z, y = value, col = factor(estimator))) + geom_line() + facet_grid(Sd~p, scales = "free_y") +
+   scale_colour_grey(name = "Estimator") +
+       geom_hline(yintercept = 0, linetype = "dotted", linewidth = 0.3) +
     ylab("Bias") + xlab(expression(gamma))
-ggsave("ManuscriptSelBias/Graphs/LogDerivMean2.pdf", height = 6.5, width = 8)
+ggsave("ManuscriptSelBias/Graphs/LogDerivMean2Print.pdf", height = hTmp2 <- 6, width = 8)
+ggplot(data = molt2[molt2$what=="bias" & abs(molt2$z) < 4,], aes(x = z, y = value, col = factor(estimator))) + geom_line() + facet_grid(Sd~p, scales = "free_y") +
+   scale_colour_manual(values = colValues, name = "Estimator") +
+       geom_hline(yintercept = 0, linetype = "dotted", linewidth = 0.3) +
+    ylab("Bias") + xlab(expression(gamma))
+ggsave("ManuscriptSelBias/Graphs/LogDerivMean2.pdf", height = hTmp2, width = 8)
 ```
 
 ```{r biasBag, fig.cap = "Bias in the estimation of the derivative of the log density of $f$ (y-axis) as a function of estimand $\\gamma$ (x-axis), correlation between features (rows), number of features $p$ (column) and estimator (colour) \\textbf{under compound symmetry}. Only the convolution and bagging estimators are shown (see \\fref{fig:biasLogDeriv2} in the main text for the naive estimator). The horizontal dotted line indicates 0 (no bias). This figures illustrates how bagging remedies the convolution estimator's small sample bias (low \\textit{p}) in the tails at zero correlation, but also that the bagging estimator is itself biased at high-correlation, no matter what the value of \\textit{p}. \\label{fig:biasBagged}"}
@@ -348,9 +357,9 @@ rm(moltMeansWeak, moltMeans)
 
 ### Sources of correlation between estimates \label{sec:originCor}
 
-\hl{We investigate causes of correlation between estimates in the following simulation study. Matrices of regressors $\mb X$ are generated as in the dense scenario of the parametric simulation in Section \ref{sec:simparam} in the main text, with different correlation strengths $\rho \in [0, 0.25, 0.5, 0.75]$. Next a coefficient vector $\bs\beta$ of length $p$ is generated through $p$ independent draws from a normal distribution with mean 0 and variance either 0, 0.04, 0.25 or 0.49, and the outcome vector $\mb y$ by independent draws from a normal distribution with variance 1 and means $\mb X\bs\beta$. Next $\mb y$ is regressed on every column of $\mb X$ using maximum likelihood, to estimate the slope $\beta_{yx}$. Conversely, every column of $\mb X$ is regressed on $\mb y$ to estimate the slope $\beta_{xy}$. In addition, the out-of-sample MSE of all regression models is estimated through cross-validation, leading to sets of estimates $\widehat{MSE}_{yx}$ for predicting y from x and $\widehat{MSE}_{xy}$ for predicting x from y. 500 Monte-Carlo instances are generated per correlation strength $\rho$, and all pairwise correlations between the $p$ estimates over these simulation instances are calculated and depicted in \fref{fig:corOrigin}. This reveals that the out-of-sample MSE is always correlated when estimated on the same outcome variable $y$ ($\widehat{MSE}_{yx}$). Yet the MSE with a common regressor $y$ for all prediction models ($\widehat{MSE}_{xy}$), and the slopes of regressing y on all columns of $\mb X$ ($\hat{\beta}_{yx}$), or all columns of $\mb X$ on y ($\hat{\beta}_{xy}$), are only correlated when the features in $\mb X$ are correlated. The correlations between $\hat{\beta}_{yx}$ and $\hat{\beta}_{xy}$ grow faster than the correlations between the regressors when there is a real relationship between the outcome and regressors, such that even moderately correlated regressors lead to considerably correlated estimators.}
+We investigate causes of correlation between estimates in the following simulation study. Matrices of regressors $\mb X$ are generated as in the dense scenario of the parametric simulation in Section \ref{sec:simparam} in the main text, with different correlation strengths $\rho \in [0, 0.25, 0.5, 0.75]$. Next a coefficient vector $\bs\beta$ of length $p$ is generated through $p$ independent draws from a normal distribution with mean 0 and variance either 0, 0.04, 0.25 or 0.49, and the outcome vector $\mb y$ by independent draws from a normal distribution with variance 1 and means $\mb X\bs\beta$. Next $\mb y$ is regressed on every column of $\mb X$ using maximum likelihood, to estimate the slope $\beta_{yx}$. Conversely, every column of $\mb X$ is regressed on $\mb y$ to estimate the slope $\beta_{xy}$. In addition, the out-of-sample MSE of all regression models is estimated through cross-validation, leading to sets of estimates $\widehat{MSE}_{yx}$ for predicting y from x and $\widehat{MSE}_{xy}$ for predicting x from y. 500 Monte-Carlo instances are generated per correlation strength $\rho$, and all pairwise correlations between the $p$ estimates over these simulation instances are calculated and depicted in \fref{fig:corOrigin}. This reveals that the out-of-sample MSE is always correlated when estimated on the same outcome variable $y$ ($\widehat{MSE}_{yx}$). Yet the MSE with a common regressor $y$ for all prediction models ($\widehat{MSE}_{xy}$), and the slopes of regressing y on all columns of $\mb X$ ($\hat{\beta}_{yx}$), or all columns of $\mb X$ on y ($\hat{\beta}_{xy}$), are only correlated when the features in $\mb X$ are correlated. The correlations between $\hat{\beta}_{yx}$ and $\hat{\beta}_{xy}$ grow faster than the correlations between the regressors when there is a real relationship between the outcome and regressors, such that even moderately correlated regressors lead to considerably correlated estimators.
 
-```{r boxplotssim, fig.height = 8, fig.cap = "\\hl{Boxplots of pairwise correlations between estimators approximated by Monte-Carlo simulation (y-axis) as a function of the correlation between features (x-axis), for different estimated quantities (rows) and different signal strengths (columns). The horizontal dotted line indicates zero correlation, the diagonal dotted blue line has slope 1 and intercept 0.\\label{fig:corOrigin}}"}
+```{r boxplotssim, fig.height = 8, fig.cap = "Boxplots of pairwise correlations between estimators approximated by Monte-Carlo simulation (y-axis) as a function of the correlation between features (x-axis), for different estimated quantities (rows) and different signal strengths (columns). The horizontal dotted line indicates zero correlation, the diagonal dotted blue line has slope 1 and intercept 0.\\label{fig:corOrigin}"}
 p = 1e3;sdMeans = c(0, 0.2, 0.5, 0.7);names(sdMeans) = sdMeans
 if(!file.exists(simFileCors <- "simResults/simCors.RData")){ 
     simCors = lapply(Sds, function(Sd){
@@ -426,24 +435,23 @@ if(!file.exists(baseSimCIVarFile <- "simResults/baseSimVarCI.RData")){
     baseTestVarCI = lapply(modes, function(mode){
         lapply(Sds, function(Sd){
             mclapply(seq_len(ciReps), mc.cores = nCores, function(j){
-                    meanVec = makeMean(p, sd = sdMean, effFrac = effFrac, effSize = effSize, mode = mode)
-                    names(meanVec) = seq_len(p)
-                    VarsTrue = runif(p, varRange[1], varRange[2])
-                    Sig = Sigmas[[as.character(Sd)]]*tcrossprod(sqrt(VarsTrue))
-                    mat = rmvnorm(n = n, mean = meanVec, sigma = Sig)
-                    rownames(mat) = seq_len(n)
-                    getSimpleEstsMat(mat = mat, bootReps = bootReps, meanVec = meanVec, 
-                                     extremes = extVec, VarsTrue = VarsTrue/n, ciReturn = TRUE)
+                meanVec = makeMean(p, sd = sdMean, effFrac = effFrac, effSize = effSize, mode = mode)
+                names(meanVec) = seq_len(p)
+                VarsTrue = runif(p, varRange[1], varRange[2])
+                Sig = Sigmas[[as.character(Sd)]]*tcrossprod(sqrt(VarsTrue))
+                mat = rmvnorm(n = n, mean = meanVec, sigma = Sig)
+                rownames(mat) = seq_len(n)
+                getSimpleEstsMat(mat = mat, bootReps = bootReps, meanVec = meanVec, 
+                                 extremes = extVec, VarsTrue = VarsTrue/n, ciReturn = TRUE)
             })
         })
     })
     save(baseTestVarCI, file = baseSimCIVarFile)
 } else load(baseSimCIVarFile) 
 plotNormal = c("rawEst", "FayeCorrectEst", "TanCorrectEst","TanCorrectEstParam",
-               "tweedieConvEsts", "split", "condML", "ash",
-               "ashConv", "catScores", "bootCorrectForde", "VanZwet2021" , "VanZwet2021conv")
+               "tweedieConvEsts", "split", "condML", "ash", "ashConv", "catScores", "bootCorrectForde", "bootCorrectFordeDep", "VanZwet2021" , "VanZwet2021conv")
 plotNormalPaper = c("rawEst", "FayeCorrectEst", "TanCorrectEst", "VanZwet2021conv",
-               "tweedieConvEsts", "split", "condML", "ashConv", "catScores", "bootCorrectForde")
+               "tweedieConvEsts", "split", "condML", "ashConv", "catScores", "bootCorrectForde", "bootCorrectFordeDep")
 ```
 
 ```{r depBoot2, include  = FALSE}
@@ -522,12 +530,12 @@ plotParEmpBayes = ggplot(data = empDf[(empDf$Method %in% methodLabels[match(tabl
     guides(colour = guide_legend(nrow = 1)) +
         scale_colour_manual(values = colourVec[names(colourVec) %in% levels(empDf$Method)]) +
         Theme + geom_hline(data = lineDf, aes(yintercept = value), linetype = "dotted")
-pdf(paste0("ManuscriptSelBias/Graphs/VarScen50empBayes.pdf"), height = 10, width = 9.5)
+pdf(paste0("ManuscriptSelBias/Graphs/VarScen50empBayes.pdf"), height = 9, width = 9.5)
 print(plotParEmpBayes + geom_hline(data = lineDf, aes(yintercept = value), linetype = "dotted"))
 dev.off();rm(plotParEmpBayes)
 ```
 
-```{r bagPlot2, fig.cap = "\\hl{Simulation results for mean estimation in parametric simulation in the sparse scenario for different performance measures (side panels) for the raw estimates and naive and convolution empirical Bayes methods (colour) for increasing correlation between features (top panels). The x-axis shows the number of features with smallest estimates considered. The dotted horizontal line indicates zero bias or MSE or the nominal coverage of 95\\%, respectively. For zero correlation, the convolution corrected versions sometimes overlap with the naive versions.}\\label{fig:varScenBag}", fig.height = 8.5, fig.width = 10}
+```{r bagPlot2, fig.cap = "Simulation results for mean estimation in parametric simulation in the sparse scenario for different performance measures (side panels) for the raw estimates and naive and convolution empirical Bayes methods (colour) for increasing correlation between features (top panels). The x-axis shows the number of features with smallest estimates considered. The dotted horizontal line indicates zero bias or MSE or the nominal coverage of 95\\%, respectively. For zero correlation, the convolution corrected versions sometimes overlap with the naive versions.\\label{fig:varScenBag}", fig.height = 8.5, fig.width = 10}
 ggplot(data = empDf[(empDf$Method %in% methodLabels[match(table = methodLevels, plotEmp)]) & (empDf$what == "Raw estimate") & empDf$mode == "sparse",], 
        aes(y = value, colour = Method, x = Top_features)) + geom_line() +
   facet_grid(Performance_measure ~ Cor, scales = "free_y") +
@@ -538,7 +546,7 @@ ggplot(data = empDf[(empDf$Method %in% methodLabels[match(table = methodLevels, 
 rm(empDf)
 ```
 
-Apart from estimating the derivative of the log density for Tweedie's formula, we also investigate the effect of convolution on ash and VanZwet2021. \fref{fig:ashIllustr} shows how convolution improves the estimator for the prior distribution of the ash method under dependence in a parametric simulation study under the dense scenario. \fref{fig:zwetIllustr} illustrates the improvement for the estimator of the z-value distribution for the VanZwet2021 method. Furthermore, \fref{fig:ashSimVar} shows how the widths of the respective prior and z-value distributions better approximate the width of the true distribution after convolution.
+Next, we investigate the effect of convolution on ash and VanZwet2021. \fref{fig:ashIllustr} shows how convolution improves the estimator for the prior distribution of the ash method under dependence in a parametric simulation study under the dense scenario. \fref{fig:zwetIllustr} illustrates the improvement for the estimator of the z-value distribution for the VanZwet2021 method. Furthermore, \fref{fig:ashSimVar} shows how the widths of the respective prior and z-value distributions better approximate the width of the true distribution after convolution.
 
 ```{r ashresam, fig.cap = "Prior distribution of the estimand $\\gamma$ estimated by ash with increasing correlation between the features (plot titles) as in the dense scenario of parametric simulation. 4 Monte-Carlo instances are shown per correlation. The naive estimates are shown in dark red, the convoluted estimates are shown in bright red; solid lines when the prior was modelled as a mixture of uniforms (the default throughout this study) and dashed lines when the prior was modelled as a mixture of normals. The true prior distribution, a Gaussian with mean 0 and variance 0.04 as known from the data generation mechanism, is shown in blue. In scenarios with correlation between features, convolution is seen to yield better estimates of the prior distribution. The y-axis is on the log-scale.\\label{fig:ashIllustr}", fig.height = 6.75}
 numSamAsh = 10; 
@@ -619,7 +627,7 @@ densList = lapply(names(depBootAshVZ), function(x){
 trueVar = sdMean^2/(mean(varRange)/n) + (mean(varRange)/(n-1))*(n-1)/(n-3) + 1 #Variance of the means + t-distribution variance + 1 for z-statistics
 ```
 
-```{r estZwetVars, fig.cap = paste0("\\textbf{Left:} Average variance of the estimated prior distribution of ash (y-axis) as a function of correlation strength (x-axis) for the naive and convolution ash estimator, in dark and bright red respectively. The vertical dashed line indicates the variance of the true prior (", sdMean^2, "). \\textbf{Right:} Average variance of the estimated z-value distribution (y-axis) as a function of correlation strength (x-axis) for naive and convolution VanZwet2021 estimator, in teal and cyan respectively. The vertical dashed line indicates the variance of the true z-value distribution (", signif(trueVar, 3) ,"). At a correlation of 0, the estimated variances without and with convolution coincide for both methods. The simulation settings are the same as in the parametric simulation study in the 'dense' scenario. \\label{fig:ashSimVar}"), fig.width = 6, fig.height = 3.5}
+```{r estZwetVars, fig.cap = paste0("\\textbf{Left:} Average variance of the estimated prior distribution of ash (y-axis) as a function of correlation strength (x-axis) for the naive and convolution ash estimator, in dark and bright red respectively. The vertical dashed line indicates the variance of the true prior (", sdMean^2, "). \\textbf{Right:} Average variance of the estimated z-value distribution (y-axis) as a function of correlation strength (x-axis) for naive and convolution VanZwet2021 estimator, in teal and cyan respectively. The vertical dashed line indicates the variance of the true z-value distribution (", signif(trueVar, 3) ,"). At a correlation of 0, the estimated variances without and with convolution coincide for both methods. The simulation settings are the same as in the parametric simulation study in the dense scenario. \\label{fig:ashSimVar}"), fig.width = 6, fig.height = 3.5}
 avAsh = colMeans(sapply(depBootAshVZ, function(x) sapply(x, function(y) getVarianceUniform(y[["ashObj"]]))))
 avConv = colMeans(sapply(depBootAshVZ, function(x) sapply(x, function(y) getVarianceUniform(y[["ashObjConv"]]))))
 avZwet = colMeans(sapply(depBootAshVZ, function(x) sapply(x, function(y) zwetOverallVar(y[["zwetObj"]]))))
@@ -662,12 +670,12 @@ plotPar = ggplot(data = fullDf[with(fullDf, mode == "dense" & Method %in% method
         guides(colour = guide_legend(nrow = 2)) +
         scale_colour_manual(values = colourVec[names(colourVec) %in% levels(fullDf$Method)]) +
         Theme + geom_hline(data = lineDf, aes(yintercept = value), linetype = "dotted")
-pdf(paste0("ManuscriptSelBias/Graphs/VarScen50.pdf"), height = 10.5, width = 9)
-print(plotPar)
+pdf(paste0("ManuscriptSelBias/Graphs/VarScen50.pdf"), height = 9.5, width = 9)
+print(plotPar) 
 dev.off();rm(plotPar)
 ```
 
-```{r plotSparse, fig.cap = "\\label{fig:varScenSparse}Parametric simulation results in the sparse scenario for different performance measures (side panels) and methods (colour) for increasing correlation between features (top panels). The x-axis shows the number of features with smallest estimates considered. For the true discovery rate (TDR), the feature ranking is the same for conditional likelihood as for the raw estimates, so in this case only the raw estimates' results are shown. The dotted horizontal line indicates zero bias or MSE or the nominal coverage of 95\\%.", fig.height = 11, fig.width = 10}
+```{r plotSparse, fig.cap = "\\label{fig:varScenSparse}Parametric simulation results \\textbf{in the sparse scenario} for different performance measures (side panels) and methods (colour) for increasing correlation between features (top panels). The x-axis shows the number of features with smallest estimates considered. For the true discovery rate (TDR), the feature ranking is the same for conditional likelihood as for the raw estimates, so in this case only the raw estimates' results are shown. The dotted horizontal line indicates zero bias or MSE or the nominal coverage of 95\\%.", fig.height = 11, fig.width = 10}
 plotParSparse = ggplot(data = fullDf[with(fullDf,mode == "sparse" & Method %in% methodLabels[match(table = methodLevels, plotNormalPaper)] & what == "Raw estimate"),], aes(y = value, colour = Method, x = Top_features)) +
         geom_line(linewidth = lineSize) + facet_grid(Performance_measure ~ Cor, scales = "free_y") +
         ylab("Performance measure") + xlab("Number of smallest estimates") +
@@ -675,25 +683,25 @@ plotParSparse = ggplot(data = fullDf[with(fullDf,mode == "sparse" & Method %in% 
         scale_colour_manual(values = colourVec[names(colourVec) %in% levels(fullDf$Method)]) +
         Theme
 print(plotParSparse + geom_hline(data = lineDf, aes(yintercept = value), linetype = "dotted"))
-rm(fullDf, plotParSparse)
+rm(fullDf, plotParSparse) 
 ```
 
 ```{r mseOverall, fig.cap = "Boxplots of MSE of all estimates for parametric simulation study in the different scenarios (top panels) for different methods (colour) and increasing correlation between features (side panels) over 500 Monte-Carlo instances. The conditional likelihood method is not included as it does not calculate corrected estimates for all features.\\label{fig:mseAll}", fig.height = 6}
-plotMSEres(baseTestVarCI, Methods2Plot = c(plotNormal, "estOutSplit"), colVecAdd = "Conditional likelihood") 
+plotMSEres(baseTestVarCI, Methods2Plot = c(plotNormal, "estOutSplit"), colVecAdd = "Conditional likelihood")
 ```
 
 ```{r varSup, fig.cap = "Full simulation results for parametric simulation study in the \\textbf{dense scenario} for different performance measures (side panels), different methods (colour) and increasing correlation between features (top panels). The x-axis shows the number of features with smallest estimates considered. The linetype indicates whether the result is based on raw estimates, test statistics or rescaled test statistics. The dotted horizontal line indicates zero bias or MSE or the nominal coverage of 95\\%. The feature ranking is the same for conditional likelihood as for the raw estimates, and when using test statistics also identical to ash with or without convolution, so in these cases only the results for the raw estimates are shown. Rescaling the corrected test statistics to the scale of the raw estimates does not systematically improve performance in terms of bias and MSE of top estimates with respect to correcting the raw estimates for any of the methods considered (separate estimation was omitted here as it is identical to the raw version). Nonparametric and parametric bootstrapping for Tan2015 yields virtually the same result in this simple case.\\label{fig:varScenSup}", fig.height = 12, fig.width = 10}
 rescNames = paste0(setdiff(plotNormal, c("rawEst", "split")), "_rescale")
 plotNormalResc = c(plotNormal, rescNames) 
-plotNormalResc = plotNormalResc[!(plotNormalResc %in% c("catScores_rescale", "VanZwet2021_rescale", "VanZwet2021conv_rescale"))]
+plotNormalResc = plotNormalResc[!(plotNormalResc %in% c("catScores_rescale", "VanZwet2021_rescale", "VanZwet2021conv_rescale", "bootCorrectFordeDep_rescale"))]
 methodLevelsResc = c(methodLevels, rescNames)
-methodLabelsResc = c(methodLabels, rescNames)
+methodLabelsResc = c(methodLabels, rescNames) 
 if(!file.exists(fullFileSup <- "Results/fullDfSup.RData")){
     baseTestVarCIresc = lapply(baseTestVarCI, function(xx){
         lapply(xx, function(x){
             lapply(x, function(y){
                 #Raw estimates
-                tmp = y$resMatZ[, setdiff(plotNormal, c("rawEst", "condML", "split", "VanZwet2021conv"))] * (ses <- sqrt(y$resMat[, "Vars"]))
+                tmp = y$resMatZ[, setdiff(plotNormal, c("rawEst", "condML", "split", "VanZwet2021conv", "bootCorrectFordeDep"))] * (ses <- sqrt(y$resMat[, "Vars"]))
                 colnames(tmp) = paste0(colnames(tmp), "_rescale")
                 y$resMat = cbind(y$resMat, tmp)
                 ## condML
@@ -719,7 +727,7 @@ if(!file.exists(fullFileSup <- "Results/fullDfSup.RData")){
     fullDfSup = rbind(p1, p2, p4, p5, p6)
     fullDfSup = fullDfSup[with(fullDfSup, !(grepl("Ash", Method) & what == "Test statistic")),]
     save(fullDfSup, file = fullFileSup)
-} else load(fullFileSup) 
+} else load(fullFileSup)  
 fullDfSup2 = fullDfSup[with(fullDfSup, (Performance_measure == "TDR" | what == "Raw estimate") ),]
 fullDfSup2$what[grep(fullDfSup2$Method, pattern = "rescale")] = "Rescaled test statistic"
 fullDfSup2$what = factor(fullDfSup2$what, levels = names(linValues), labels = names(linValues), ordered = TRUE)
@@ -731,21 +739,19 @@ ggplot(data = fullDfSup2b[with(fullDfSup2, mode == "dense"),], aes(y = value, co
         ylab("Performance measure") + xlab("Number of smallest estimates") +
         scale_linetype_manual(name = "Estimate", values = linValues) + 
         guides(colour = guide_legend(nrow = 4), linetype = guide_legend(nrow = 3)) +
-        scale_colour_manual(values = colourVec[names(colourVec) %in% levels(fullDfSup2$Method)]) +
-        Theme + geom_hline(data = lineDf, aes(yintercept = value), linetype = "dotted")
+        scale_colour_manual(values = colourVec[names(colourVec) %in% levels(fullDfSup2$Method)]) + Theme + geom_hline(data = lineDf, aes(yintercept = value), linetype = "dotted")
 ```
 
-```{r fullScenSparse, fig.cap = "\\hl{Full simulation results for parametric simulation study in the \\textbf{sparse scenario} for different performance measures (side panels), different methods (colour) and increasing correlation between features (top panels). The x-axis shows the number of features with smallest estimates considered. The linetype indicates whether the result is based on raw estimates, test statistics or rescaled test statistics. The dotted horizontal line indicates zero bias or MSE or the nominal coverage of 95\\%. The feature ranking is the same for conditional likelihood as for the raw estimates, and when using test statistics also identical to ash with or without convolution, so in these cases only the results for the raw estimates are shown. Rescaling the corrected test statistics to the scale of the raw estimates does not systematically improve performance in terms of bias and MSE of top estimates with respect to correcting the raw estimates for any of the methods considered (separate estimation was omitted here as it is identical to the raw version). Nonparametric and parametric bootstrapping for Tan2015 yields virtually the same result in this simple case.\\label{fig:varScenSupSparse}}", fig.height = 12, fig.width = 10}
+```{r fullScenSparse, fig.cap = "Full simulation results for parametric simulation study in the \\textbf{sparse scenario} for different performance measures (side panels), different methods (colour) and increasing correlation between features (top panels). The x-axis shows the number of features with smallest estimates considered. The linetype indicates whether the result is based on raw estimates, test statistics or rescaled test statistics. The dotted horizontal line indicates zero bias or MSE or the nominal coverage of 95\\%. The feature ranking is the same for conditional likelihood as for the raw estimates, and when using test statistics also identical to ash with or without convolution, so in these cases only the results for the raw estimates are shown. Rescaling the corrected test statistics to the scale of the raw estimates does not systematically improve performance in terms of bias and MSE of top estimates with respect to correcting the raw estimates for any of the methods considered (separate estimation was omitted here as it is identical to the raw version). Nonparametric and parametric bootstrapping for Tan2015 yields virtually the same result in this simple case.\\label{fig:varScenSupSparse}", fig.height = 12, fig.width = 10}
 ggplot(data = fullDfSup2b[with(fullDfSup2, mode == "sparse"),], aes(y = value, colour = Method, x = Top_features, linetype = what)) +
-        geom_line(linewidth = lineSize) + facet_grid(Performance_measure ~ Cor, scales = "free_y") +
-        ylab("Performance measure") + xlab("Number of smallest estimates") +
+        geom_line(linewidth = lineSize) + facet_grid(Performance_measure ~ Cor, scales = "free_y") + ylab("Performance measure") + xlab("Number of smallest estimates") +
         scale_linetype_manual(name = "Estimate", values = linValues) + 
         guides(colour = guide_legend(nrow = 4), linetype = guide_legend(nrow = 3)) +
         scale_colour_manual(values = colourVec[names(colourVec) %in% levels(fullDfSup2$Method)]) +
-        Theme + geom_hline(data = lineDf, aes(yintercept = value), linetype = "dotted")
+        Theme + geom_hline(data = lineDf, aes(yintercept = value), linetype = "dotted") 
 ```
 
-```{r fulldfdiff, fig.cap = "\\hl{Full simulation results for parametric simulation study: difference in TDR between (rescaled) test statistics and raw estimates for different scenarios (side panels), different methods (colour) and increasing correlation between features (top panels). Positive values indicate higher TDR for the (rescaled) test statistic. The x-axis shows the number of features with smallest estimates considered. The linetype indicates which difference is depicted. The dotted horizontal line indicates zero: no difference. The feature ranking is the same for conditional likelihood as for the raw estimates, and when using test statistics also identical to ash with or without convolution, so in these cases no difference is shown. \\label{fig:varScenSupTDR}}", fig.height = 7, fig.width = 10}
+```{r fulldfdiff, fig.cap = "Full simulation results for parametric simulation study: difference in TDR between (rescaled) test statistics and raw estimates for different scenarios (side panels), different methods (colour) and increasing correlation between features (top panels). Positive values indicate higher TDR for the (rescaled) test statistic. The x-axis shows the number of features with smallest estimates considered. The linetype indicates which difference is depicted. The dotted horizontal line indicates zero: no difference. The feature ranking is the same for conditional likelihood as for the raw estimates, and when using test statistics also identical to ash with or without convolution, so in these cases no difference is shown. \\label{fig:varScenSupTDR}", fig.height = 7, fig.width = 10}
 tmp = table(fullDfSup2[fullDfSup2$Performance_measure == "TDR",]$what, fullDfSup2[fullDfSup2$Performance_measure == "TDR",]$Method)
 tmp = tmp[rowSums(tmp)>0, colSums(tmp)>0]
 fullDfDiff = aggregate(data = fullDfSup2[fullDfSup2$Performance_measure != "TDR",],
@@ -765,24 +771,23 @@ fullDfDiffTdr3 = aggregate(data = fullDfSup2[fullDfSup2$Performance_measure == "
         y[2]-y[1]
 })
 fullDfDiffTdr3$what = "Rescaled test statistic - raw"
-fullDfDiff2 = rbind(fullDfDiff, fullDfDiffTdr11, fullDfDiffTdr2, fullDfDiffTdr3)
-fullDfDiff2$what = factor(fullDfDiff2$what, levels = c("Test statistic - raw", "Rescaled test statistic - raw"), ordered = TRUE)
+fullDfDiff2 = droplevels(rbind(fullDfDiff, fullDfDiffTdr11, fullDfDiffTdr2, fullDfDiffTdr3))
+fullDfDiff2$what = factor(fullDfDiff2$what, levels = c("Test statistic - raw", "Rescaled test statistic - raw"), 
+                          ordered = TRUE)
 ggplot(data = fullDfDiff2[fullDfDiff2$Performance_measure == "TDR",], aes(y = value, colour = Method, x = Top_features, linetype = what)) +
         geom_line(linewidth = lineSize) + facet_grid(mode ~ Cor, scales = "free_y") +
         ylab("Difference in TDR") + xlab("Number of smallest estimates") +
         scale_linetype_discrete(name = "Difference") + 
         guides(colour = guide_legend(nrow = 3), linetype = guide_legend(nrow = 2)) +
-        scale_colour_manual(values = colourVec[names(colourVec) %in% levels(fullDfSup2$Method)]) +
-        Theme + geom_hline(aes(yintercept = 0), linetype = "dotted")
+        scale_colour_manual(values = colourVec[names(colourVec) %in% levels(fullDfDiff2$Method)]) + Theme + geom_hline(aes(yintercept = 0), linetype = "dotted") 
 ```
 
-```{r fulldfdiffMSE, fig.cap = "\\hl{Full simulation results for parametric simulation study: difference in MSE between rescaled test statistics and raw estimates for different scenarios (side panels), different methods (colour) and increasing correlation between features (top panels). Positive values indicate higher MSE for the (rescaled) test statistic. The x-axis shows the number of features with smallest estimates considered. The dotted horizontal line indicates zero: no difference.\\label{fig:varScenSupMSE}}", fig.height = 7, fig.width = 10}
-#MSE
-ggplot(data = fullDfDiff2[fullDfDiff2$Performance_measure == "MSE",], aes(y = value, colour = Method, x = Top_features)) +
+```{r fulldfdiffMSE, fig.cap = "Full simulation results for parametric simulation study: difference in MSE between rescaled test statistics and raw estimates for different scenarios (side panels), different methods (colour) and increasing correlation between features (top panels). Positive values indicate higher MSE for the (rescaled) test statistic. The x-axis shows the number of features with smallest estimates considered. The dotted horizontal line indicates zero: no difference.\\label{fig:varScenSupMSE}", fig.height = 7, fig.width = 10}
+ggplot(data = fullDfDiff2[fullDfDiff2$Performance_measure == "MSE" & !is.na(fullDfDiff2$value),], aes(y = value, colour = Method, x = Top_features)) +
         geom_line(linewidth = lineSize) + facet_grid(mode ~ Cor, scales = "free_y") +
         ylab("Difference in MSE: rescaled test statistic - raw") + xlab("Number of smallest estimates") +
-        guides(colour = guide_legend(nrow = 3), linetype = guide_legend(nrow = 2)) +
-        scale_colour_manual(values = colourVec[names(colourVec) %in% levels(fullDfSup2$Method)]) +
+        guides(colour = guide_legend(nrow = 2), linetype = guide_legend(nrow = 2)) +
+        scale_colour_manual(values = colourVec[names(colourVec) %in% levels(fullDfDiff2$Method)]) +
         Theme + geom_hline(aes(yintercept = 0), linetype = "dotted")
 ```
 
@@ -790,7 +795,7 @@ ggplot(data = fullDfDiff2[fullDfDiff2$Performance_measure == "MSE",], aes(y = va
 
 ### The rank conditional coverage \label{sec:rcc}
 
-The rank conditional coverage (RCC) is shown in \fref{fig:rcc} for the parametric simulation study (dense scenario), reflecting the average coverage at each rank separately. Yet there is no material difference between the coverage results of the RCC and overall coverage, except that the RCC is more variable.
+The rank conditional coverage (RCC) is shown in \fref{fig:rcc} for the parametric simulation study, reflecting the average coverage at each rank separately. Yet there is no material difference between the coverage results of the RCC and overall coverage, except that the RCC is more variable.
 
 ```{r ciRCC, fig.cap = "Rank conditional coverage (RCC) of 95\\% confidence intervals (y-axis) for estimates of different methods (colour) for different ranks (x-axis) for increasing correlation (top panels) and different simulation scenarions (side panels) in parametric simulation. \\label{fig:rcc}", fig.height = 6, fig.width = 9}
 rccDf = plotCoverage(baseTestVarCI, extremes = extVec, Methods2Plot = c(plotNormal, "estOutSplit"), quantity = "RCC", convertMethod = TRUE, returnDf = TRUE)
@@ -808,9 +813,9 @@ rm(baseTestVarCI)
 
 ### Selection by controlling the false discovery rate \label{sec:tdr}
 
-\hl{So far, only the top $h$ estimates were considered, with $h$ running from 1 to 30. Here we look at the selection of features while controlling the false discovery rate (FDR) using the procedure by \textcite{Benjamini1995}. All features with an adjusted p-value below `r sigLevel` and point estimate below 0 (since we are interested in small estimates) were retained and the relevant performance measures calculated for them. The results are shown in \fref{fig:tdr}, and reveal that for the sparse scenario, the winner's curse effect is weak, the TDR is high and the empirical coverage of the confidence intervals comes close to their nominal level for most methods. The reason is that in most simulations, all 0.1$p$ features with mean drawn from a distribution with non-zero mean are selected, and none of the other $0.9p$. In the dense scenario, all methods perform much worse, as it becomes harder to correctly rank the features compared to the sparse scenario. A drawback of the FDR approach is that it is only applicable when a null value for $\gamma$ is available.}
+So far, only the top $h$ estimates were considered, with $h$ running from 1 to 30. Here we look at the selection of features while controlling the false discovery rate (FDR) using the procedure by \textcite{Benjamini1995}. All features with an adjusted p-value below `r sigLevel` and point estimate below 0 (since we are interested in small estimates) were retained and the relevant performance measures calculated for them. The results are shown in \fref{fig:tdr}, and reveal that for the sparse scenario, the winner's curse effect is weak, the TDR is high and the empirical coverage of the confidence intervals comes close to their nominal level for most methods. The reason is that in most simulations, all 0.1$p$ features with mean drawn from a distribution with non-zero mean are selected, and none of the other $0.9p$. In the dense scenario, all methods perform much worse, as it becomes harder to correctly rank the features compared to the sparse scenario. A drawback of the FDR approach is that it is only applicable when a null value for $\gamma$ is available.
 
-```{r fdrSel, fig.cap = paste("\\hl{Simulation results for mean estimation in parametric simulation for different performance measures (side panels) for different selection bias correction methods (colour) and increasing correlation between features (top panels) in different scenarios (point shapes). The performance measures were calculated on all features with adjusted p-values below", sigLevel, "and with point estimate smaller than 0. The dotted horizontal line indicates zero bias or MSE or the nominal coverage of 95\\%, respectively. \\label{fig:tdr}}"), fig.height = 8.5, fig.width = 10}
+```{r fdrSel, fig.cap = paste("Simulation results for mean estimation in parametric simulation for different performance measures (side panels) for different selection bias correction methods (colour) and increasing correlation between features (top panels) in different scenarios (point shapes). The performance measures were calculated on all features with adjusted p-values below", sigLevel, "and with point estimate smaller than 0. The dotted horizontal line indicates zero bias or MSE or the nominal coverage of 95\\%, respectively. \\label{fig:tdr}"), fig.height = 8.5, fig.width = 10}
 if(!file.exists(fdrFile <- "Results/fdrFile.RData")){
     p1fdr = plotSimpleResFDR(baseTestVarCI, p = p, Methods2Plot = plotNormalPaper, returnDf = TRUE)
     p2fdr = plotSimpleResFDR(baseTestVarCI, p = p, power = 2, Methods2Plot = plotNormalPaper, returnDf = TRUE)
@@ -827,7 +832,7 @@ ggplot(data = fdrDf[fdrDf$extreme == "small", ], aes(y = value, colour = Method,
     xlab("Method") + ylab("Performance measure") + scale_shape_discrete(name = "Scenario") +
     scale_colour_manual(values = colourVec[names(colourVec) %in% levels(fdrDf$Method)])+ 
     geom_hline(data = lineDf, aes(yintercept = value), linetype = "dotted") +
-    theme(axis.text.x = element_blank())
+    theme(axis.text.x = element_blank()) 
 ```
 
 \clearpage
@@ -921,7 +926,9 @@ if(!file.exists(UniMSEcvFileSplit <- "Results/UniMSECVsplit.RData")){
                 bootEstsIn = sqrt(t(sapply(y$boCV, function(x) x[,"MSE"])))
                 bootEstsOut = sqrt(t(sapply(y$boCV, function(x) x[,"MSEout"])))
                 bootCorrectTan = TanCorrect(rawEsts, bootEstsIn)$est
-                bootCorrectForde = forde(rawEsts, Vars <- seEsts^2, allowInflate = TRUE)
+                bootCorrectForde = forde(rawEsts, Vars <- seEsts^2)
+                bb =  bootEstsIn[1,];names(bb) = names(rawEsts)
+                bootCorrectFordeDep = forde(rawEsts, Vars, beta_boot =bb)
                 bootCorrectFaye = FayeCorrect(rawEsts, bootEstsIn, bootEstsOut)$est
                 alpha1 = getAlpha1(bootEstsIn)
                 tweedieCorrectConvList = tweedieForm(rawEsts, varsEstimates = Vars, alpha1 = alpha1)
@@ -953,7 +960,8 @@ if(!file.exists(UniMSEcvFileSplit <- "Results/UniMSECVsplit.RData")){
                 }
                 resMat = cbind("rawEst" = rawEsts, "split" = splitEstsIn, "estOutSplit" = splitEstsOut, 
                       "TanCorrectEst" = bootCorrectTan, "FayeCorrectEst" = bootCorrectFaye, "outEst" = outEsts, 
-                      "bootCorrectForde" = bootCorrectForde, "VanZwet2021" = zwetRes$res$betaHats + mr,
+                      "bootCorrectForde" = bootCorrectForde, "bootCorrectFordeDep" = bootCorrectFordeDep,
+                      "VanZwet2021" = zwetRes$res$betaHats + mr,
                       "VanZwet2021conv" = zwetResConv$res$betaHats + mr, "outSEests" = outSEests,
                       "tweedieConvEsts" = tweedieCorrectConv, "tweedieConvEstsTrunc" = tweedieCorrectConvTrunc, 
                       "tweedieConvEstsBoot" = tweedieCorrectConvBoot, "tweedieConvEstsTruncBoot" = tweedieCorrectConvBootTrunc, 
@@ -1173,7 +1181,9 @@ if(!file.exists(estsListCIfile <- "Results/estsListsCI.RData")){
         tweedieCorrectBoot["tweedieCorEsts",][tweedieCorrectBoot["tweedieCorEsts",]<0] = 0
         tweedieCredInt = buildCredInt(tweedieCorrectBoot, vars = seEsts^2, quants = Quants)
         ashObj = ash(rawEsts, seEsts, method = "shrink", mode = "estimate")
-        bootCorrectForde = forde(rawEsts, seEsts^2, allowInflate = TRUE)
+        bootCorrectForde = forde(rawEsts, seEsts^2)
+        bb = bootEstsIn[1,];names(bb) = names(rawEsts)
+        bootCorrectFordeDep = forde(rawEsts, seEsts^2, beta_boot = bb)
         ashCI = ashci(ashObj, level = 1-sigLevel, betaindex = seq_along(rawEsts), trace = FALSE)
          ashConv = getConvAsh(rawEsts, seEsts, alpha1 = alpha1, ashObj = ashObj)
         ashConvCI = ashci(ashConv, level = 1-sigLevel, trace = FALSE)
@@ -1188,13 +1198,13 @@ if(!file.exists(estsListCIfile <- "Results/estsListsCI.RData")){
         rawsCatBoot = crossprod.powcor.shrink(bootEstsIn, rawEsts-mr, alpha = -1/2, verbose = FALSE)+mr
         rownames(ashCI) = rownames(ashConvCI[seq_along(rawEsts),]) = rownames(estOutSplitCi) =names(rawEsts)
         list("ests" = data.frame("rawEst" = rawEsts, "tweedieConvEsts" = tweedieCorrectBoot["tweedieCorEsts",], 
-                   "TanCorrectEst" = bootCorrectTan, "phenotype" = phen, "bootCorrectForde" = bootCorrectForde, "VanZwet2021" = zwetRes$res$betaHats + mr, "VanZwet2021conv" = zwetResConv$res$betaHats + mr, "ashConv" = ashConv$result$PosteriorMean[seq_along(rawEsts)], "estOutSplit" = estOutSplit, "rawsCatBoot" = c(rawsCatBoot), "FayeCorrectEst" = bootCorrectFaye, "ash" = ashObj$result$PosteriorMean),
+                   "TanCorrectEst" = bootCorrectTan, "phenotype" = phen, "bootCorrectForde" = bootCorrectForde, "bootCorrectFordeDep" = bootCorrectFordeDep, "VanZwet2021" = zwetRes$res$betaHats + mr, "VanZwet2021conv" = zwetResConv$res$betaHats + mr, "ashConv" = ashConv$result$PosteriorMean[seq_along(rawEsts)], "estOutSplit" = estOutSplit, "rawsCatBoot" = c(rawsCatBoot), "FayeCorrectEst" = bootCorrectFaye, "ash" = ashObj$result$PosteriorMean),
              "ci" = list("Raw"  = rawCi, "Tweedie's formula\nconvoluted" = tweedieCredInt, "Ash convoluted" = ashConvCI,
              "Ash" = ashCI, "Separate estimation" = estOutSplitCi, "VanZwet2021" = zwetRes$confInts + mr, "VanZwet2021 convoluted" = zwetResConv$confInts + mr))
     })
     names(estsListCI) = names(phenId1) 
     save(estsListCI, file = estsListCIfile)
-} else load(estsListCIfile) 
+} else load(estsListCIfile)
 ```
 
 ```{r bras1trialMulti}
@@ -1220,7 +1230,7 @@ estsList = lapply(estsListCI, function(x) x$ests)
 estsListMolt = melt(Reduce(f = rbind, estsList), id.vars = c("phenotype"), variable.name = "Method", value.name = "estimate")
 highDimEst = data.frame("estimate" = sqrt(mseMult), phenotype = names(mseMult)) 
 estsListMolt$Method = factor(estsListMolt$Method, levels = methodLevels, labels = methodLabels)
-estsListMolt$phenotype = factor(estsListMolt$phenotype, levels = namPhen, labels = namPhen, ordered = TRUE)
+estsListMolt$phenotype = factor(estsListMolt$phenotype, levels = namPhen, labels = namPhen, ordered = TRUE) 
 ```
 
 ```{r predFigPaper, fig.cap = "\\label{fig:histBras}Histograms of RMSE estimates of single-gene models for predicting different phenotypes (plot titles) of the \\emph{Brassica napus} field trial. The RMSE estimate of the multi-gene model is shown as a dashed blue vertical line, the smallest raw estimate of the single-gene models (before winner's curse correction) is shown as dotted vertical line.", fig.height = 6}
@@ -1234,11 +1244,11 @@ for(i in namPhen){
     abline(v = sqrt(mseMult[[i]]), col = "blue", lty = "dashed")
     abline(v = min(estsList[[i]]$rawEst), col = "black", lty = "dotted")
 }
-par(mfrow = c(1,1)) 
+par(mfrow = c(1,1))  
 ```
 
 ```{r plotBetasVsMSE, include = FALSE}
-load(UniMSEcvFile)
+load(UniMSEcvFile) 
 pdf("ManuscriptSelBias/Graphs/BetasVsRMSE.pdf", height = 5.5)
 par(mfrow = c(2,3))
 foo = lapply(names(UniMSECV), function(x){
@@ -1251,7 +1261,7 @@ dev.off()
 ```
 
 ```{r tableMin}
-#Only consider smallest 50% raw estimates for Tweedie
+#Only consider smallest 50% raw estimates for Tweedie 
 estsList2 = lapply(estsList, function(x){
     quant50 = x[, "rawEst"] > quantile(x[, "rawEst"], 0.5)
     x$tweedieConvEstsTrunc = x[, "tweedieConvEsts"]
@@ -1277,7 +1287,7 @@ ciSmallest = vapply(FUN.VALUE = double(2), seq_len(nrow(smallestEstWhich)), func
     if(x[["Method"]] ==  "Tweedie's formula\nconvoluted or bagged\n(truncated)"){
         x[["Method"]] = "Tweedie's formula\nconvoluted"
     }
-    if(x[["Method"]] %in% c("Tan2015 (nonparametric)", "Cat scores\nnonparametric bootstrap", "BR-squared", "winnerscurse")){return(c(NA, NA))}
+    if(x[["Method"]] %in% c("Tan2015 (nonparametric)", "Cat scores\nnonparametric bootstrap", "BR-squared", "winnerscurse", "winnerscurse\n(nonparametric)")){return(c(NA, NA))}
     estsListCI[[x[["phenotype"]]]]$ci[[as.character(x[["Method"]])]][x[["estimate"]], ]
 })
 ciSmallestPasted = apply(round(ciSmallest, 2), 2, paste, collapse = " - ")
@@ -1315,10 +1325,9 @@ ggplot(data = tabDf[!(tabDf$Method %in% c("Cat scores\nnonparametric bootstrap")
     geom_errorbar(aes(ymin=lower, ymax=upper), width = Width, position=position_dodge(Dodge)) +
     geom_hline(col = "#CC6699", aes(yintercept = estimate), data = tabDf[tabDf$Method== "Elastic net", c("phenotype", "estimate")],
                linetype = "dotted") +
-    ylab("RMSE estimate") +
-    xlab("") +
+    ylab("RMSE estimate") + xlab("") +
     theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(), strip.text.y = element_text(size = stripSize))
-ggsave("ManuscriptSelBias/Graphs/BrasPredReal.pdf", height = 8, width = 7.5) 
+ggsave("ManuscriptSelBias/Graphs/BrasPredReal.pdf", height = 8, width = 7.9) 
 ```
 
 ```{r taxTab, results = "asis"}
@@ -1389,9 +1398,10 @@ for(phen in namPhen){
     points(pch = Pch, cex = Cex, estsListCI[[phen]]$ests$rawsCatBoot, x = rawEsts, col = colourVec["Cat scores\nnonparametric bootstrap"])
     points(pch = Pch, cex = Cex, estsListCI[[phen]]$ests$bootCorrectForde, x = rawEsts, col = colourVec["winnerscurse"])
      points(pch = Pch, cex = Cex, estsListCI[[phen]]$ests$VanZwet2021, x = rawEsts, col = colourVec["VanZwet2021"])
+          points(pch = Pch, cex = Cex, estsListCI[[phen]]$ests$bootCorrectFordeDep, x = rawEsts, col = colourVec["winnerscurse\n(nonparametric)"])
     abline(0,1) #Tan's correction appears more natural
 } 
-legVec = c("Separate estimation", "BR-squared", "Tan2015 (nonparametric)", "Tweedie's formula\nconvoluted", "Ash", "Ash convoluted", "Cat scores\nnonparametric bootstrap", "winnerscurse", "VanZwet2021")
+legVec = c("Separate estimation", "BR-squared", "Tan2015 (nonparametric)", "Tweedie's formula\nconvoluted", "Ash", "Ash convoluted", "Cat scores\nnonparametric bootstrap", "winnerscurse", "winnerscurse\n(nonparametric)", "VanZwet2021")
 plot(type = "n", 0, 0, xlab = "", ylab = "", axes = FALSE)
 par(mar = c(4, 4, 3, 4.7))
 legend("center", ncol = 2, legend = legVec, col = colourVec[legVec], pch = Pch, cex = 0.8) 
@@ -1485,6 +1495,9 @@ if(!file.exists(benchCompFile <- "simResults/benchComp.RData")){
                     "catScores" = system.time({shrinkcat.stat(mat, L = rep(0, n), verbose = FALSE)})[3],
                     "bootCorrectForde" = system.time({
                         forde(colMeans(mat), apply(mat, 2, var)/nrow(mat))
+                        })[3],
+                    "bootCorrectFordeDep" = system.time({
+                        forde(colMeans(mat), apply(mat, 2, var)/nrow(mat), beta_boot = colMeans(mat[sampel(n),]))
                         })[3],
                     "VanZwet2021" = system.time({
                        ests = colMeans(mat)
@@ -1594,7 +1607,7 @@ if(!file.exists(benchCompFile <- "simResults/benchComp.RData")){
                      alpha1 = getAlpha1(mat)
                     ashObj = getConvAsh(ests, ses, alpha1 = alpha1, ashObj = ash(betahat = ests, ses, method = "shrink", mode = "estimate"))
                         ashci(ashObj, level = 1-sigLevel, trace = FALSE)
-                    })[3], "catScores" = NA, "bootCorrectForde" = NA,
+                    })[3], "catScores" = NA, "bootCorrectForde" = NA, "bootCorrectFordeDep" = NA,
                                       "VanZwet2021" = system.time({
                        ests = colMeans(mat)
                        s = apply(mat, 2, sd)/sqrt(nrow(mat))
@@ -1623,7 +1636,7 @@ benchCompMean = apply(benchComp, c(1,2), mean)
 colnames(benchCompMean) = c("Point estimate", "Confidence interval")
 rownames(benchCompMean) = gsub("\\(CV SE\\)", "", as.character(factor(gsub(".elapsed", "", rownames(benchCompMean)), levels = methodLevels, labels = methodLabels)))
 rownames(benchCompMean) = gsub("bootstrap SE", "bootstrap correlation", rownames(benchCompMean))
-print.xtable(comment = FALSE, xtable(benchCompMean[c("Raw", "Separate estimation", "Conditional likelihood", "BR-squared", "Tan2015 (nonparametric)", "Tan2015 (parametric)", "winnerscurse", "Tweedie's formula\nconvoluted or bagged", "Ash", "Ash convoluted", "VanZwet2021", "VanZwet2021 convoluted", "Cat scores"),], display = rep("e", 3), digits = 2, caption = "Average computation times in seconds for calculation of point estimates and confidence intervals for different selection bias correction methods (rows) over 20 repeats.\\label{tab:compTimes}")) 
+print.xtable(comment = FALSE, xtable(benchCompMean[c("Raw", "Separate estimation", "Conditional likelihood", "BR-squared", "Tan2015 (nonparametric)", "Tan2015 (parametric)", "winnerscurse", "winnerscurse\n(nonparametric)", "Tweedie's formula\nconvoluted or bagged", "Ash", "Ash convoluted", "VanZwet2021", "VanZwet2021 convoluted", "Cat scores"),], display = rep("e", 3), digits = 2, caption = "Average computation times in seconds for calculation of point estimates and confidence intervals for different selection bias correction methods (rows) over 20 repeats.\\label{tab:compTimes}")) 
 ```
 
 \clearpage
@@ -1686,6 +1699,7 @@ Tan2015 &
 \end{itemize} &
 \begin{itemize}
 \item Changeable correction of winner's curse
+\item \hl{Relying on estimates and standard errors only fails to capture the effect of dependence. A single nonparametric bootstrap of the data cannot fully remedy this.}
 \item No measure of uncertainty on corrected estimates
 \item High-dimensionality required
 \end{itemize}\\
@@ -1738,7 +1752,7 @@ Cat scores &
 
 # Software \label{sec:soft}
 
-The software versions used are detailed below.
+The R-code for producing all output of this study is available at \url{https://github.com/maerelab/WinnersCursePaper}. The software versions used are detailed below.
 
 ```{r sessionInfo}
 sessionInfo()
