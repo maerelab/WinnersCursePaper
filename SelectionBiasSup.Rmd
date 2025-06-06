@@ -68,6 +68,7 @@ extVec = seq_len(30); names(extVec) = extVec
 ciRepsSingle = 5e1 #For univariate models there are several repeats => fewer reps suffice
 betaList = list("p" = betas1e3)
 Sds = c(0, 0.25, 0.5, 0.75); names(Sds) = Sds
+varRange = c(2,10)
 ```
 
 # Convolution improves density estimation under dependence
@@ -94,7 +95,7 @@ If $g$ is a point mass at $\mu^*$, then $f(z) = r(z|\mu^*, 1)$ (remember that $f
 
 # Empirical validation
 
-## Empirical validation of empirical properties
+## Empirical validation of theoretical properties
 
 In the main text, the theoretical results from Sections \ref{sec:tweedieBiased}-\ref{sec:solution} are validated using Monte-Carlo simulations in Section \ref{sec:simparam}. Here we provide exhaustive results, including not only the compound symmetric correlation structure but also block correlation.
 
@@ -167,7 +168,7 @@ ggplot(data = moltMeans[moltMeans$what %in% c("Variance", "MSE") & abs(moltMeans
 
 \clearpage
  
-### Convolution estimator
+### Convolution estimator \label{sec:convEst}
 
 Exhaustive results for the convolution estimator from Section \ref{sec:solution} in the main paper are provided here.
 
@@ -353,6 +354,49 @@ rm(moltMeansWeak, moltMeans)
 
 \clearpage
 
+## Empirical validation of density bagging on all estimates combined \label{sec:bagging}
+
+```{r defBag}
+zExt = c(-1, 1)*1.6; zSeqBag = seq(zExt[1], zExt[2], length.out = 1e3)
+repsBag = 9;pBag = 5e3;sdBag = 0
+```
+
+Here we validate empirically that estimating the density on the collection of all bootstrapped estimates is equivalent to the classical bagging approach, whereby separate densities are estimated per bootstrap sample and then these densities are averaged. Nine data matrices are generated as in Section \ref{sec:convEst} with p=`r pBag` and zero correlation, `r B` bootstrap instances are taken, and the densities are estimated through Lindsey's estimator \parencite{Lindsey1974} in the two ways described above. \fref{fig:bagging} demonstrates how similar the densities are, justifying the estimation on all bootstrap estimates jointly while still calling it "density bagging".
+
+```{r bagging, fig.height = 6.5, fig.cap = "\\label{fig:bagging}Nine instances of density estimates obtained from the observed estimates (red dotted line), by averaging densities estimates on separate bootstrap samples (light blue solid line) and estimated on the collection of all bootstrap samples jointly (black dashed line). The latter two density estimates are so similar that the lines overlap almost completely. This graph also illustrates how bagging widens the density estimates."}
+Vars = runif(pBag, varRange[1], varRange[2]);sds = sqrt(Vars)
+mat = rmvnorm(n = repsBag*n, mean = rep(0, pBag), sigma = makeSigma(sdBag, pBag)*outer(sds, sds))
+tmp = double(length(zSeqBag))
+outBag = vapply(idBag <- seq_len(repsBag), FUN.VALUE = matrix(0, length(zSeqBag), 3), function(j){
+        matIn = mat[seq_len(n) + (j-1)*n,]
+        obsMeans = colMeans(matIn)
+        obsDensAll = exp(evalFitLog(estDens(z = obsMeans, densMethod = "Lindsey", returnFit = TRUE), z = zSeqBag))
+        obsDensAll = obsDensAll/sum(obsDensAll)
+        bootMeans = vapply(integer(B), FUN.VALUE = double(pBag), function(i){
+            colMeans(matIn[sample(n, replace = TRUE),])
+        })
+        bootDensAll = exp(evalFitLog(estDens(z = c(bootMeans), densMethod = "Lindsey", returnFit = TRUE), z = zSeqBag))
+        bootDensAll = bootDensAll/sum(bootDensAll)
+        bootDensSep = apply(bootMeans, 2, function(x){
+            id = zSeqBag > min(x) & zSeqBag < max(x)
+             tmp[id] = exp(evalFitLog(z = zSeqBag[id], estDens(z = x, densMethod = "Lindsey", returnFit = TRUE)))
+             #Avoid extrapolation
+             tmp/sum(tmp)
+        })
+        bootDensSepAv = rowMeans(bootDensSep)
+        cbind('ObsEstimation' = obsDensAll, 'JointEstimation' = bootDensAll, 'SeparateEstimation' = bootDensSepAv)
+})
+par(mfrow = c(3,3), mar = c(4,4,4,4))
+foo = lapply(idBag, function(xx){
+    plot(zSeqBag, outBag[, 'ObsEstimation', xx], col = "red", lty = "dotted", type = "l", xlab = "z-values", ylab = "Density")
+    lines(zSeqBag, outBag[, 'JointEstimation', xx], col = "lightblue")
+    lines(zSeqBag, outBag[, 'SeparateEstimation', xx], col = "black", lty = "dashed")
+})
+par(mfrow = c(1,1))
+```
+
+\clearpage
+
 ## Empirical comparison of correction methods: parametric simulations
 
 ### Sources of correlation between estimates \label{sec:originCor}
@@ -427,7 +471,6 @@ Sigmas = lapply(Sds, function(Sd){
     diag(Sigma) = 1
     Sigma
   })
-varRange = c(2,10)
 ciReps = 5e2
 effSize = -1; effFrac = 0.1
 modes = c("dense", "sparse");names(modes) = modes
@@ -1245,19 +1288,6 @@ for(i in namPhen){
     abline(v = min(estsList[[i]]$rawEst), col = "black", lty = "dotted")
 }
 par(mfrow = c(1,1))  
-```
-
-```{r plotBetasVsMSE, include = FALSE}
-load(UniMSEcvFile) 
-pdf("ManuscriptSelBias/Graphs/BetasVsRMSE.pdf", height = 5.5)
-par(mfrow = c(2,3))
-foo = lapply(names(UniMSECV), function(x){
-    y = sqrt(sapply(UniMSECV[[x]]$nesCV, function(x) x["Bates", "MSEhat"]))
-    features = intersect(names(y), names(UniMSECV[[x]]$betas))
-    plot(y[features], abs(UniMSECV[[x]]$betas[features]), main = x, xlab = "RMSE", ylab = "Absolute value of the slope")
-})
-par(mfrow = c(1,1))
-dev.off()
 ```
 
 ```{r tableMin}
